@@ -36,6 +36,7 @@ def MAIN_EXTRACT(args):
     ops.mknod_char(ops.path_join(output_rootfs_dir, "dev"), "null", "1", "3")
 
     ops.copyto(ops.path_join(pkg_path, "init"), output_rootfs_dir)
+    ops.ln(output_rootfs_dir, "lib", "lib64")
 
     return True
 
