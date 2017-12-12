@@ -1,54 +1,56 @@
 #!/bin/sh
-boot_delay=""
-boot_dev=""
-boot_rootfs=""
 B_MNT="/bin/mount"
 B_UMNT="/bin/umount"
 
-mountfs() {
+mount_fs_and_export_env() {
 $B_MNT -t proc proc /proc
 cmd_env=`/bin/cat /proc/cmdline`
 export $cmd_env
 $B_MNT -t devtmpfs devtmpfs /dev
 $B_MNT -t sysfs sysfs /sys
+}
+
+mountfs() {
+mount_fs_and_export_env
 
 if [ "$BOOT_DELAY" == "" ];
 then
-  boot_delay=0
+  echo "No boot delay"
 else
-  boot_delay=$BOOT_DELAY
+  #BOOT_DELAY=1
+  echo "Sleeping $BOOT_DELAY seconds..."
 fi
 
 if [ "$BOOT_DEV" == "" ];
 then
-  boot_dev="/dev/sda1"
+  echo "No boot dev"
 else
-  boot_dev=$BOOT_DEV
+  #BOOT_DEV=/dev/sda1
+  echo "Booting from $BOOT_DEV..."
+  $B_MNT -t vfat $BOOT_DEV /mnt
 fi
 
 if [ "$BOOT_ROOTFS" == "" ];
 then
-  boot_rootfs="rootfs.squashfs"
+  echo "No rootfs"
 else
-  boot_rootfs=$BOOT_ROOTFS
+  #BOOT_ROOTFS=rootfs.squashfs
+  echo "Boot rootfs $BOOT_ROOTFS"
+  $B_MNT -t squashfs /mnt/$BOOT_ROOTFS /newroot
 fi
-
-echo "Booting from $boot_dev..."
-echo "Sleeping $boot_delay seconds..."
-echo "Boot rootfs $boot_rootfs"
-$B_MNT -t vfat $boot_dev /mnt
 }
 
 rootfs_exist() {
+echo "Switch ROOT..."
 $B_UMNT /proc
 $B_UMNT /sys
-$B_MNT -t squashfs /mnt/$boot_rootfs /newroot
 exec switch_root /newroot /init
 }
 
 rootfs_not_exist() {
+echo "Starting SH..."
 exec /bin/sh
 }
 
 mountfs
-[ -f /mnt/$boot_rootfs ] && rootfs_exist || rootfs_not_exist
+[ -f /mnt/$BOOT_ROOTFS ] && rootfs_exist || rootfs_not_exist

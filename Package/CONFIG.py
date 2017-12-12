@@ -12,7 +12,7 @@ def set_global(args):
     global mkinitramfs
     pkg_path = args["pkg_path"]
     output_dir = args["output_path"]
-    output_rootfs_dir = ops.path_join(args["output_path"], "rootfs")
+    output_rootfs_dir = ops.path_join(output_dir, "rootfs")
 
 def MAIN_ENV(args):
     set_global(args)
