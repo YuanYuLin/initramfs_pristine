@@ -38,6 +38,14 @@ else
   echo "Boot rootfs $BOOT_ROOTFS"
   $B_MNT -t squashfs /mnt/$BOOT_ROOTFS /newroot
 fi
+
+if [ -f /mnt/kmod.squashfs ];
+then
+  echo "mount kernel modules image"
+  $B_MNT -t squashfs /mnt/kmod.squashfs /newroot/lib/modules
+else
+  echo "kernel modules image[kmod.squashfs] not exist"
+fi
 }
 
 rootfs_exist() {
