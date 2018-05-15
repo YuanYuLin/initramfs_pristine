@@ -27,7 +27,7 @@ then
 else
   #BOOT_DEV=/dev/sda1
   echo "Booting from $BOOT_DEV..."
-  $B_MNT -t vfat $BOOT_DEV /mnt
+  $B_MNT -t vfat $BOOT_DEV$BOOT_DEV_PART /mnt
 fi
 
 if [ "$BOOT_ROOTFS" == "" ];
