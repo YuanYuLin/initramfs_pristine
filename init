@@ -1,64 +1,53 @@
 #!/bin/sh
-B_MNT="/bin/mount"
+B_MNT="/bin/mount -t"
 B_UMNT="/bin/umount"
+G_BOOTDELAY="0"
+G_BOOT_DEV_PART=""
+G_TARGET=""
 
-mount_fs_and_export_env() {
-$B_MNT -t proc proc /proc
+global_setup() {
+$B_MNT proc proc /proc
 cmd_env=`/bin/cat /proc/cmdline`
 export $cmd_env
-$B_MNT -t devtmpfs devtmpfs /dev
-$B_MNT -t sysfs sysfs /sys
-}
+$B_MNT devtmpfs devtmpfs /dev
+$B_MNT sysfs sysfs /sys
 
-mountfs() {
-mount_fs_and_export_env
+G_BOOT_DEV_PART=$BOOT_DEV$BOOT_DEV_PART
+G_TARGET="/mnt"
+G_BOOT_ON_RAM="$BOOT_ON_RAM"
 
-if [ "$BOOT_DELAY" == "" ];
+sleep $BOOT_DELAY
+if [ "$G_BOOT_ON_RAM" == "" ];
 then
-  echo "No boot delay"
+  $B_MNT vfat $G_BOOT_DEV_PART $G_TARGET
 else
-  #BOOT_DELAY=1
-  echo "Sleeping $BOOT_DELAY seconds..."
-fi
-
-if [ "$BOOT_DEV" == "" ];
-then
-  echo "No boot dev"
-else
-  #BOOT_DEV=/dev/sda1
-  echo "Booting from $BOOT_DEV..."
-  $B_MNT -t vfat $BOOT_DEV$BOOT_DEV_PART /mnt
-fi
-
-if [ "$BOOT_ROOTFS" == "" ];
-then
-  echo "No rootfs"
-else
-  #BOOT_ROOTFS=rootfs.squashfs
-  echo "Boot rootfs $BOOT_ROOTFS"
-  $B_MNT -t squashfs /mnt/$BOOT_ROOTFS /newroot
-fi
-
-if [ -f /mnt/kmod.squashfs ];
-then
-  echo "mount kernel modules image"
-  $B_MNT -t squashfs /mnt/kmod.squashfs /newroot/lib/modules
-else
-  echo "kernel modules image[kmod.squashfs] not exist"
+  $B_MNT tmpfs tmpfs $G_TARGET
+  $B_MNT vfat $G_BOOT_DEV_PART /newroot
+  cp /newroot/rootfs.squashfs $G_TARGET
+  cp /newroot/kmod.squashfs $G_TARGET
+  $B_UMNT /newroot
 fi
 }
 
-rootfs_exist() {
-echo "Switch ROOT..."
-$B_UMNT /proc
-$B_UMNT /sys
-exec switch_root /newroot /init
+global_action() {
+if [ -f $G_TARGET/rootfs.squashfs ];
+then
+  $B_MNT squashfs $G_TARGET/rootfs.squashfs /newroot
+fi
+if [ -f $G_TARGET/kmod.squashfs ];
+then
+  $B_MNT squashfs $G_TARGET/kmod.squashfs /newroot/lib/modules
+fi
+
+if [ -f $G_TARGET/rootfs.squashfs ];
+then
+  $B_UMNT /proc
+  $B_UMNT /sys
+  exec switch_root /newroot /init
+else
+  exec /bin/sh
+fi
 }
 
-rootfs_not_exist() {
-echo "Starting SH..."
-exec /bin/sh
-}
-
-mountfs
-[ -f /mnt/$BOOT_ROOTFS ] && rootfs_exist || rootfs_not_exist
+global_setup
+global_action
