@@ -25,6 +25,7 @@ else
   $B_MNT vfat $G_BOOT_DEV_PART /newroot
   cp /newroot/rootfs.squashfs $G_TARGET
   cp /newroot/kmod.squashfs $G_TARGET
+  cp /newroot/defaults.squashfs $G_TARGET
   $B_UMNT /newroot
 fi
 }
@@ -37,6 +38,10 @@ fi
 if [ -f $G_TARGET/kmod.squashfs ];
 then
   $B_MNT squashfs $G_TARGET/kmod.squashfs /newroot/lib/modules
+fi
+if [ -f $G_TARGET/defaults.squashfs ];
+then
+  $B_MNT squashfs $G_TARGET/defaults.squashfs /newroot/etc/defaults
 fi
 
 if [ -f $G_TARGET/rootfs.squashfs ];
