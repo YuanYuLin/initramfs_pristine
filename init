@@ -23,10 +23,17 @@ then
 else
   $B_MNT tmpfs tmpfs $G_TARGET
   $B_MNT vfat $G_BOOT_DEV_PART /newroot
-  cp /newroot/rootfs.squashfs $G_TARGET
-  cp /newroot/kmod.squashfs $G_TARGET
-  cp /newroot/defaults.squashfs $G_TARGET
+  FILES="rootfs.squashfs kmod.squashfs dao.squashfs env.txt"
+  for F_ITM in $FILES;
+  do
+    cp $F_ITM /newroot/$G_TARGET
+  done
   $B_UMNT /newroot
+fi
+if [ -f $G_TARGET/env.txt ];
+then
+  txt_env=`/bin/cat $G_TARGET/env.txt`
+  export $txt_env
 fi
 }
 
@@ -39,9 +46,9 @@ if [ -f $G_TARGET/kmod.squashfs ];
 then
   $B_MNT squashfs $G_TARGET/kmod.squashfs /newroot/lib/modules
 fi
-if [ -f $G_TARGET/defaults.squashfs ];
+if [ -f $G_TARGET/dao.squashfs ];
 then
-  $B_MNT squashfs $G_TARGET/defaults.squashfs /newroot/etc/defaults
+  $B_MNT squashfs $G_TARGET/dao.squashfs /newroot/lib/iopcdao
 fi
 
 if [ -f $G_TARGET/rootfs.squashfs ];
