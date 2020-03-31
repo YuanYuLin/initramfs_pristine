@@ -1,65 +1,25 @@
 #!/bin/sh
-B_MNT="/bin/mount -t"
-B_UMNT="/bin/umount"
-G_BOOTDELAY="0"
-G_BOOT_DEV_PART=""
-G_TARGET=""
 
-global_setup() {
-$B_MNT proc proc /proc
-cmd_env=`/bin/cat /proc/cmdline`
-export $cmd_env
-$B_MNT devtmpfs devtmpfs /dev
-$B_MNT sysfs sysfs /sys
+/bin/mount -t tmpfs tmpfs /mnt
 
-G_BOOT_DEV_PART=$BOOT_DEV$BOOT_DEV_PART
-G_TARGET="/mnt"
-G_BOOT_ON_RAM="$BOOT_ON_RAM"
+/iopcinit
 
-sleep $BOOT_DELAY
-if [ "$G_BOOT_ON_RAM" == "" ];
+if [ -f /mnt/env.txt ];
 then
-  $B_MNT vfat $G_BOOT_DEV_PART $G_TARGET
-else
-  $B_MNT tmpfs tmpfs $G_TARGET
-  $B_MNT vfat $G_BOOT_DEV_PART /newroot
-  FILES="rootfs.squashfs kmod.squashfs dao.squashfs env.txt"
-  for F_ITM in $FILES;
-  do
-    cp $F_ITM /newroot/$G_TARGET
-  done
-  $B_UMNT /newroot
-fi
-if [ -f $G_TARGET/env.txt ];
-then
-  txt_env=`/bin/cat $G_TARGET/env.txt`
+  txt_env=`/bin/cat /mnt/env.txt`
   export $txt_env
 fi
-}
-
-global_action() {
-if [ -f $G_TARGET/rootfs.squashfs ];
+if [ -f /mnt/export.txt ];
 then
-  $B_MNT squashfs $G_TARGET/rootfs.squashfs /newroot
-fi
-if [ -f $G_TARGET/kmod.squashfs ];
-then
-  $B_MNT squashfs $G_TARGET/kmod.squashfs /newroot/lib/modules
-fi
-if [ -f $G_TARGET/dao.squashfs ];
-then
-  $B_MNT squashfs $G_TARGET/dao.squashfs /newroot/lib/iopcdao
+  txt_env=`/bin/cat /mnt/export.txt`
+  export $txt_env
 fi
 
-if [ -f $G_TARGET/rootfs.squashfs ];
+#/bin/umount /mnt
+
+if [ "$BOOT2ROOT" == "1" ];
 then
-  $B_UMNT /proc
-  $B_UMNT /sys
-  exec switch_root /newroot /init
+exec /sbin/switch_root /newroot /init
 else
-  exec /bin/sh
+exec /bin/sh
 fi
-}
-
-global_setup
-global_action

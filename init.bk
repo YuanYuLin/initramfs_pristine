@@ -1,0 +1,74 @@
+#!/bin/sh
+B_MNT="/bin/mount -t"
+B_UMNT="/bin/umount"
+G_BOOTDELAY="0"
+G_BOOT_DEV_PART=""
+G_TARGET=""
+
+global_setup() {
+$B_MNT proc proc /proc
+cmd_env=`/bin/cat /proc/cmdline`
+export $cmd_env
+$B_MNT devtmpfs devtmpfs /dev
+$B_MNT sysfs sysfs /sys
+
+G_BOOT_DEV_PART=$BOOT_DEV$BOOT_DEV_PART
+G_TARGET="/mnt"
+G_BOOT_ON_RAM="$BOOT_ON_RAM"
+
+sleep $BOOT_DELAY
+if [ "$G_BOOT_ON_RAM" == "" ];
+then
+  $B_MNT vfat $G_BOOT_DEV_PART $G_TARGET
+else
+  $B_MNT tmpfs tmpfs $G_TARGET
+  while [ "0" == "0" ]
+  do
+    $B_MNT vfat $G_BOOT_DEV_PART /newroot
+    if [ $? -eq 0 ]; then
+      echo "mounted $G_BOOT_DEV_PART to /newroot"
+      break
+    else
+      echo "try to mount again [$G_BOOT_DEV_PART] -> /newroot"
+    fi
+  done
+  FILES="rootfs.squashfs kmod.squashfs dao.squashfs env.txt"
+  for F_ITM in $FILES;
+  do
+    cp -v /newroot/$F_ITM $G_TARGET
+  done
+  $B_UMNT /newroot
+fi
+if [ -f $G_TARGET/env.txt ];
+then
+  txt_env=`/bin/cat $G_TARGET/env.txt`
+  export $txt_env
+fi
+}
+
+global_action() {
+if [ -f $G_TARGET/rootfs.squashfs ];
+then
+  $B_MNT squashfs $G_TARGET/rootfs.squashfs /newroot
+fi
+if [ -f $G_TARGET/kmod.squashfs ];
+then
+  $B_MNT squashfs $G_TARGET/kmod.squashfs /newroot/lib/modules
+fi
+if [ -f $G_TARGET/dao.squashfs ];
+then
+  $B_MNT squashfs $G_TARGET/dao.squashfs /newroot/lib/iopcdao
+fi
+
+if [ -f $G_TARGET/rootfs.squashfs ];
+then
+  $B_UMNT /proc
+  $B_UMNT /sys
+  exec switch_root /newroot /init
+else
+  exec /bin/sh
+fi
+}
+
+global_setup
+global_action
